@@ -1,0 +1,55 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "git-clerk"
+version = "0.1.0"
+description = "Structured git workflow CLI: conventional commits, trunk-based branches, GitHub PR lifecycle"
+readme = "README.md"
+license = "MIT"
+authors = [{name = "Nicolas Contreras", email = "nicolas.b.contreras@gmail.com"}]
+requires-python = ">=3.10"
+dependencies = ["click>=8.0"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+    "License :: OSI Approved :: MIT License",
+    "Environment :: Console",
+    "Topic :: Software Development :: Version Control :: Git",
+]
+
+[project.urls]
+Homepage = "https://github.com/nicobc/git-clerk"
+Source = "https://github.com/nicobc/git-clerk"
+Issues = "https://github.com/nicobc/git-clerk/issues"
+
+[project.scripts]
+git-clerk = "git_clerk.cli:main"
+
+[dependency-groups]
+dev = [
+    "pyright>=1.1",
+    "pytest>=8.0",
+    "ruff>=0.4",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/git_clerk"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
+
+[tool.pyright]
+include = ["src"]
+pythonVersion = "3.10"
+typeCheckingMode = "strict"
+venvPath = "."
+venv = ".venv"
