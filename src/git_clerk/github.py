@@ -3,7 +3,7 @@ import json
 import subprocess
 from urllib.parse import urlparse
 
-from git_clerk.git import remote_url
+from git_clerk.git import current_branch, remote_url
 
 
 def parse_repo_from_url(url: str) -> str:
@@ -54,7 +54,9 @@ def pr_create(title: str, body: str, base: str = "main") -> tuple[int, str]:
 
 
 def pr_view() -> tuple[int, str]:
-    out = _gh("pr", "view", "--repo", repo(), "--json", "number,title", capture=True)
+    out = _gh(
+        "pr", "view", current_branch(), "--repo", repo(), "--json", "number,title", capture=True
+    )
     data = json.loads(out)
     return int(data["number"]), str(data["title"])
 
