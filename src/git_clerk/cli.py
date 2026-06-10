@@ -73,6 +73,13 @@ def branch(name: str) -> None:
 @main.command()
 @click.option("-A", "stage_all", is_flag=True, help="Stage all changes before committing.")
 @click.option(
+    "-a",
+    "files",
+    multiple=True,
+    metavar="FILE",
+    help="Stage a specific file before committing. Repeatable: -a foo.py -a bar.py.",
+)
+@click.option(
     "-t",
     "--type",
     "type_override",
@@ -93,6 +100,7 @@ def branch(name: str) -> None:
 @click.argument("body", required=False, default=None)
 def commit(
     stage_all: bool,
+    files: tuple[str, ...],
     type_override: str | None,
     scope_override: str | None,
     edit_body: bool,
@@ -107,6 +115,8 @@ def commit(
     """
     if body and edit_body:
         raise click.UsageError("BODY and --edit are mutually exclusive")
+    if stage_all and files:
+        raise click.UsageError("-A and -a are mutually exclusive")
     br = git.current_branch()
     try:
         type_, scope = parse_branch(br)
@@ -117,6 +127,8 @@ def commit(
         body = _open_editor(header)
     if stage_all:
         git.add_all()
+    elif files:
+        git.add_files(files)
     git.commit(header, body)
 
 

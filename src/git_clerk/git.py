@@ -60,6 +60,10 @@ def add_all() -> None:
     _git("add", "-A")
 
 
+def add_files(paths: tuple[str, ...]) -> None:
+    _git("add", "--", *paths)
+
+
 def commit(header: str, body: str | None = None) -> None:
     args = ["commit", "-m", header]
     if body:

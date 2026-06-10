@@ -68,6 +68,49 @@ class TestCommit:
         )
         assert "file.txt" in committed
 
+    def test_selective_stage_flag(self, git_repo: Path, runner: CliRunner) -> None:
+        (git_repo / "other.txt").write_text("other")
+        result = runner.invoke(main, ["commit", "-a", "file.txt", "add one file only"])
+        assert result.exit_code == 0, result.output
+        committed = (
+            subprocess.run(
+                ["git", "diff-tree", "--no-commit-id", "-r", "--name-only", "HEAD"],
+                capture_output=True,
+                text=True,
+                cwd=git_repo,
+            )
+            .stdout.strip()
+            .splitlines()
+        )
+        assert "file.txt" in committed
+        assert "other.txt" not in committed
+
+    def test_selective_stage_multiple_files(self, git_repo: Path, runner: CliRunner) -> None:
+        (git_repo / "second.txt").write_text("second")
+        (git_repo / "third.txt").write_text("third")
+        result = runner.invoke(
+            main, ["commit", "-a", "second.txt", "-a", "third.txt", "add two files"]
+        )
+        assert result.exit_code == 0, result.output
+        committed = (
+            subprocess.run(
+                ["git", "diff-tree", "--no-commit-id", "-r", "--name-only", "HEAD"],
+                capture_output=True,
+                text=True,
+                cwd=git_repo,
+            )
+            .stdout.strip()
+            .splitlines()
+        )
+        assert "second.txt" in committed
+        assert "third.txt" in committed
+
+    def test_stage_all_and_selective_mutually_exclusive(
+        self, git_repo: Path, runner: CliRunner
+    ) -> None:
+        result = runner.invoke(main, ["commit", "-A", "-a", "file.txt", "desc"])
+        assert result.exit_code != 0
+
     @pytest.mark.usefixtures("_stage_file")
     def test_type_override(self, git_repo: Path, runner: CliRunner) -> None:
         result = runner.invoke(main, ["commit", "-t", "fix", "fix bug"])
