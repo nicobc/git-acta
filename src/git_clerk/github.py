@@ -1,6 +1,7 @@
 import functools
 import json
 import subprocess
+import time
 from urllib.parse import urlparse
 
 from git_clerk.git import current_branch, remote_url
@@ -74,4 +75,12 @@ def pr_merge(pr_number: int) -> None:
 
 
 def pr_checks_watch(pr_number: int) -> None:
+    for _ in range(18):  # up to 90s
+        out = _gh(
+            "pr", "view", str(pr_number), "--repo", repo(), "--json", "statusCheckRollup",
+            capture=True,
+        )
+        if json.loads(out).get("statusCheckRollup"):
+            break
+        time.sleep(5)
     _gh("pr", "checks", str(pr_number), "--repo", repo(), "--watch")
