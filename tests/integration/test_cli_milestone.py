@@ -1,0 +1,93 @@
+from pathlib import Path
+
+from click.testing import CliRunner
+from pytest_subprocess import FakeProcess
+
+from gitclerk.cli import main
+
+FAKE_REPO = "test-owner/test-repo"
+MILESTONE_API = f"repos/{FAKE_REPO}/milestones"
+
+
+def test_creates_milestone(
+    git_repo_with_github_remote: Path, runner: CliRunner, fp: FakeProcess
+) -> None:
+    fp.register(  # pyright: ignore[reportUnknownMemberType]
+        [
+            "gh",
+            "api",
+            MILESTONE_API,
+            "--method",
+            "POST",
+            "-f",
+            "title=Auth System",
+            "-f",
+            "description=scope: auth",
+        ],
+        stdout='{"number": 1}',
+    )
+    result = runner.invoke(main, ["milestone", "new", "Auth System", "--scope", "auth"])
+    assert result.exit_code == 0, result.output
+    assert result.output == "Milestone #1 created.\n"
+
+
+def test_creates_milestone_with_description(
+    git_repo_with_github_remote: Path, runner: CliRunner, fp: FakeProcess
+) -> None:
+    fp.register(  # pyright: ignore[reportUnknownMemberType]
+        [
+            "gh",
+            "api",
+            MILESTONE_API,
+            "--method",
+            "POST",
+            "-f",
+            "title=Auth System",
+            "-f",
+            "description=scope: auth\n\nBuild authentication.",
+        ],
+        stdout='{"number": 2}',
+    )
+    result = runner.invoke(
+        main, ["milestone", "new", "Auth System", "Build authentication.", "--scope", "auth"]
+    )
+    assert result.exit_code == 0, result.output
+    assert result.output == "Milestone #2 created.\n"
+
+
+def test_lists_milestones(
+    git_repo_with_github_remote: Path, runner: CliRunner, fp: FakeProcess
+) -> None:
+    fp.register(  # pyright: ignore[reportUnknownMemberType]
+        ["gh", "api", MILESTONE_API, "-X", "GET", "-f", "state=open"],
+        stdout=(
+            '[{"number": 1, "title": "Auth System", "description": "scope: auth",'
+            ' "open_issues": 3, "closed_issues": 1}]'
+        ),
+    )
+    result = runner.invoke(main, ["milestone", "list"])
+    assert result.exit_code == 0, result.output
+    assert result.output == "#1 Auth System scope: auth [3 open, 1 closed]\n"
+
+
+def test_lists_no_milestones(
+    git_repo_with_github_remote: Path, runner: CliRunner, fp: FakeProcess
+) -> None:
+    fp.register(  # pyright: ignore[reportUnknownMemberType]
+        ["gh", "api", MILESTONE_API, "-X", "GET", "-f", "state=open"],
+        stdout="[]",
+    )
+    result = runner.invoke(main, ["milestone", "list"])
+    assert result.exit_code == 0, result.output
+    assert result.output == "No open milestones.\n"
+
+
+def test_reopens_milestone(
+    git_repo_with_github_remote: Path, runner: CliRunner, fp: FakeProcess
+) -> None:
+    fp.register(  # pyright: ignore[reportUnknownMemberType]
+        ["gh", "api", f"{MILESTONE_API}/1", "--method", "PATCH", "-f", "state=open"],
+    )
+    result = runner.invoke(main, ["milestone", "reopen", "1"])
+    assert result.exit_code == 0, result.output
+    assert result.output == "Milestone #1 reopened.\n"
