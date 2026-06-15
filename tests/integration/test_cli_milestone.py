@@ -1,5 +1,4 @@
-from pathlib import Path
-
+import pytest
 from click.testing import CliRunner
 from pytest_subprocess import FakeProcess
 
@@ -9,9 +8,8 @@ FAKE_REPO = "test-owner/test-repo"
 MILESTONE_API = f"repos/{FAKE_REPO}/milestones"
 
 
-def test_creates_milestone(
-    git_repo_with_github_remote: Path, runner: CliRunner, fp: FakeProcess
-) -> None:
+@pytest.mark.usefixtures("git_repo_with_github_remote")
+def test_creates_milestone(runner: CliRunner, fp: FakeProcess) -> None:
     fp.register(  # pyright: ignore[reportUnknownMemberType]
         [
             "gh",
@@ -31,9 +29,8 @@ def test_creates_milestone(
     assert result.output == "Milestone #1 created.\n"
 
 
-def test_creates_milestone_with_description(
-    git_repo_with_github_remote: Path, runner: CliRunner, fp: FakeProcess
-) -> None:
+@pytest.mark.usefixtures("git_repo_with_github_remote")
+def test_creates_milestone_with_description(runner: CliRunner, fp: FakeProcess) -> None:
     fp.register(  # pyright: ignore[reportUnknownMemberType]
         [
             "gh",
@@ -55,9 +52,8 @@ def test_creates_milestone_with_description(
     assert result.output == "Milestone #2 created.\n"
 
 
-def test_lists_milestones(
-    git_repo_with_github_remote: Path, runner: CliRunner, fp: FakeProcess
-) -> None:
+@pytest.mark.usefixtures("git_repo_with_github_remote")
+def test_lists_milestones(runner: CliRunner, fp: FakeProcess) -> None:
     fp.register(  # pyright: ignore[reportUnknownMemberType]
         ["gh", "api", MILESTONE_API, "-X", "GET", "-f", "state=open"],
         stdout=(
@@ -70,9 +66,8 @@ def test_lists_milestones(
     assert result.output == "#1 Auth System scope: auth [3 open, 1 closed]\n"
 
 
-def test_lists_no_milestones(
-    git_repo_with_github_remote: Path, runner: CliRunner, fp: FakeProcess
-) -> None:
+@pytest.mark.usefixtures("git_repo_with_github_remote")
+def test_lists_no_milestones(runner: CliRunner, fp: FakeProcess) -> None:
     fp.register(  # pyright: ignore[reportUnknownMemberType]
         ["gh", "api", MILESTONE_API, "-X", "GET", "-f", "state=open"],
         stdout="[]",
@@ -82,9 +77,8 @@ def test_lists_no_milestones(
     assert result.output == "No open milestones.\n"
 
 
-def test_reopens_milestone(
-    git_repo_with_github_remote: Path, runner: CliRunner, fp: FakeProcess
-) -> None:
+@pytest.mark.usefixtures("git_repo_with_github_remote")
+def test_reopens_milestone(runner: CliRunner, fp: FakeProcess) -> None:
     fp.register(  # pyright: ignore[reportUnknownMemberType]
         ["gh", "api", f"{MILESTONE_API}/1", "--method", "PATCH", "-f", "state=open"],
     )

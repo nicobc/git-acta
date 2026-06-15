@@ -1,5 +1,3 @@
-from pathlib import Path
-
 import pytest
 from click.testing import CliRunner
 from pytest_subprocess import FakeProcess
@@ -14,9 +12,8 @@ MILESTONE_API = f"repos/{FAKE_REPO}/milestones"
 ISSUE_FIELDS = "number,title,labels,milestone"
 
 
-def test_creates_issue(
-    git_repo_with_github_remote: Path, runner: CliRunner, fp: FakeProcess
-) -> None:
+@pytest.mark.usefixtures("git_repo_with_github_remote")
+def test_creates_issue(runner: CliRunner, fp: FakeProcess) -> None:
     fp.register(  # pyright: ignore[reportUnknownMemberType]
         [
             "gh",
@@ -38,9 +35,8 @@ def test_creates_issue(
     assert result.output == "Issue #1 created.\n"
 
 
-def test_auto_creates_labels_when_missing(
-    git_repo_with_github_remote: Path, runner: CliRunner, fp: FakeProcess
-) -> None:
+@pytest.mark.usefixtures("git_repo_with_github_remote")
+def test_auto_creates_labels_when_missing(runner: CliRunner, fp: FakeProcess) -> None:
     create_args = [
         "gh",
         "issue",
@@ -79,9 +75,8 @@ def test_auto_creates_labels_when_missing(
     assert result.output == "Issue #1 created.\n"
 
 
-def test_creates_issue_with_milestone(
-    git_repo_with_github_remote: Path, runner: CliRunner, fp: FakeProcess
-) -> None:
+@pytest.mark.usefixtures("git_repo_with_github_remote")
+def test_creates_issue_with_milestone(runner: CliRunner, fp: FakeProcess) -> None:
     fp.register(  # pyright: ignore[reportUnknownMemberType]
         [
             "gh",
@@ -107,9 +102,8 @@ def test_creates_issue_with_milestone(
     assert result.output == "Issue #2 created.\n"
 
 
-def test_lists_issues(
-    git_repo_with_github_remote: Path, runner: CliRunner, fp: FakeProcess
-) -> None:
+@pytest.mark.usefixtures("git_repo_with_github_remote")
+def test_lists_issues(runner: CliRunner, fp: FakeProcess) -> None:
     fp.register(  # pyright: ignore[reportUnknownMemberType]
         ["gh", "issue", "list", "--repo", FAKE_REPO, "--json", ISSUE_FIELDS, "--state", "open"],
         stdout=(
@@ -122,9 +116,8 @@ def test_lists_issues(
     assert result.output == "#1 [feat] [milestone #1] Add login\n"
 
 
-def test_lists_no_issues(
-    git_repo_with_github_remote: Path, runner: CliRunner, fp: FakeProcess
-) -> None:
+@pytest.mark.usefixtures("git_repo_with_github_remote")
+def test_lists_no_issues(runner: CliRunner, fp: FakeProcess) -> None:
     fp.register(  # pyright: ignore[reportUnknownMemberType]
         ["gh", "issue", "list", "--repo", FAKE_REPO, "--json", ISSUE_FIELDS, "--state", "open"],
         stdout="[]",
@@ -155,18 +148,16 @@ class TestIssueStart:
             stdout=self.MILESTONE_JSON,
         )
 
-    def test_creates_branch_and_records_active_issue(
-        self, git_repo_with_github_remote: Path, runner: CliRunner
-    ) -> None:
+    @pytest.mark.usefixtures("git_repo_with_github_remote")
+    def test_creates_branch_and_records_active_issue(self, runner: CliRunner) -> None:
         result = runner.invoke(main, ["issue", "start", "1"])
         assert result.exit_code == 0, result.output
         assert result.output == "On branch 'feat/auth', active issue is #1.\n"
         assert current_branch() == "feat/auth"
         assert get_active_issue() == 1
 
-    def test_fails_without_milestone(
-        self, git_repo_with_github_remote: Path, runner: CliRunner, fp: FakeProcess
-    ) -> None:
+    @pytest.mark.usefixtures("git_repo_with_github_remote")
+    def test_fails_without_milestone(self, runner: CliRunner, fp: FakeProcess) -> None:
         fp.register(  # pyright: ignore[reportUnknownMemberType]
             ["gh", "issue", "view", "2", "--repo", FAKE_REPO, "--json", ISSUE_FIELDS],
             stdout=(
@@ -180,9 +171,8 @@ class TestIssueStart:
             "Error: Issue #2 has no milestone — assign it to a milestone first\n"
         )
 
-    def test_fails_without_scope(
-        self, git_repo_with_github_remote: Path, runner: CliRunner, fp: FakeProcess
-    ) -> None:
+    @pytest.mark.usefixtures("git_repo_with_github_remote")
+    def test_fails_without_scope(self, runner: CliRunner, fp: FakeProcess) -> None:
         fp.register(  # pyright: ignore[reportUnknownMemberType]
             ["gh", "issue", "view", "3", "--repo", FAKE_REPO, "--json", ISSUE_FIELDS],
             stdout=(
@@ -204,9 +194,8 @@ class TestIssueStart:
             "Error: Milestone #2 has no scope — its description must start with 'scope: SCOPE'\n"
         )
 
-    def test_fails_without_type_label(
-        self, git_repo_with_github_remote: Path, runner: CliRunner, fp: FakeProcess
-    ) -> None:
+    @pytest.mark.usefixtures("git_repo_with_github_remote")
+    def test_fails_without_type_label(self, runner: CliRunner, fp: FakeProcess) -> None:
         fp.register(  # pyright: ignore[reportUnknownMemberType]
             ["gh", "issue", "view", "4", "--repo", FAKE_REPO, "--json", ISSUE_FIELDS],
             stdout=(
@@ -222,9 +211,8 @@ class TestIssueStart:
         )
 
 
-def test_discards_issue(
-    git_repo_with_github_remote: Path, runner: CliRunner, fp: FakeProcess
-) -> None:
+@pytest.mark.usefixtures("git_repo_with_github_remote")
+def test_discards_issue(runner: CliRunner, fp: FakeProcess) -> None:
     fp.register(  # pyright: ignore[reportUnknownMemberType]
         ["gh", "issue", "close", "1", "--reason", "not planned", "--repo", FAKE_REPO],
     )

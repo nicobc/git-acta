@@ -128,9 +128,7 @@ class TestShipWithMilestone:
             ["gh", "pr", "merge", "1", "--squash", "--delete-branch", "--repo", FAKE_REPO],
         )
 
-    def test_clears_active_issue_on_ship(
-        self, git_repo_with_github_remote: Path, runner: CliRunner, fp: FakeProcess
-    ) -> None:
+    def test_clears_active_issue_on_ship(self, runner: CliRunner, fp: FakeProcess) -> None:
         fp.register(  # pyright: ignore[reportUnknownMemberType]
             ["gh", "issue", "view", "1", "--repo", FAKE_REPO, "--json", ISSUE_FIELDS],
             stdout=(
@@ -143,7 +141,7 @@ class TestShipWithMilestone:
         assert get_active_issue() is None
 
     def test_closes_milestone_when_all_issues_done(
-        self, git_repo_with_github_remote: Path, runner: CliRunner, fp: FakeProcess
+        self, runner: CliRunner, fp: FakeProcess
     ) -> None:
         fp.register(  # pyright: ignore[reportUnknownMemberType]
             ["gh", "issue", "view", "1", "--repo", FAKE_REPO, "--json", ISSUE_FIELDS],
@@ -167,7 +165,7 @@ class TestShipWithMilestone:
         assert result.output == 'Milestone #1 "Auth System" completed and closed.\n'
 
     def test_does_not_close_milestone_with_open_issues(
-        self, git_repo_with_github_remote: Path, runner: CliRunner, fp: FakeProcess
+        self, runner: CliRunner, fp: FakeProcess
     ) -> None:
         fp.register(  # pyright: ignore[reportUnknownMemberType]
             ["gh", "issue", "view", "1", "--repo", FAKE_REPO, "--json", ISSUE_FIELDS],

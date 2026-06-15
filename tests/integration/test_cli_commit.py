@@ -30,7 +30,7 @@ class TestCommit:
         subprocess.run(["git", "add", "file.txt"], cwd=git_repo, check=True)
 
     @pytest.mark.usefixtures("_stage_file")
-    def test_formats_message_from_branch_name(self, git_repo: Path, runner: CliRunner) -> None:
+    def test_formats_message_from_branch_name(self, runner: CliRunner) -> None:
         result = runner.invoke(main, ["commit", "add test file"])
         assert result.exit_code == 0, result.output
         assert _commit_subject() == "feat(my-scope): add test file"
@@ -51,13 +51,13 @@ class TestCommit:
         assert "file.txt" in committed
 
     @pytest.mark.usefixtures("_stage_file")
-    def test_type_override(self, git_repo: Path, runner: CliRunner) -> None:
+    def test_type_override(self, runner: CliRunner) -> None:
         result = runner.invoke(main, ["commit", "-t", "fix", "fix bug"])
         assert result.exit_code == 0, result.output
         assert _commit_subject() == "fix(my-scope): fix bug"
 
     @pytest.mark.usefixtures("_stage_file")
-    def test_scope_override(self, git_repo: Path, runner: CliRunner) -> None:
+    def test_scope_override(self, runner: CliRunner) -> None:
         result = runner.invoke(main, ["commit", "-s", "other", "cross-cutting change"])
         assert result.exit_code == 0, result.output
         assert _commit_subject() == "feat(other): cross-cutting change"
