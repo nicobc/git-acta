@@ -4,6 +4,7 @@ from dataclasses import dataclass
 
 from gitclerk.github import gh, repo
 from gitclerk.github.label import ensure_type_labels
+from gitclerk.github.milestone import milestone_view
 
 
 @dataclass
@@ -26,6 +27,7 @@ def issue_create(
     body: str = "",
     milestone: int | None = None,
 ) -> int:
+    milestone_title = milestone_view(milestone).title if milestone is not None else None
     args = [
         "issue",
         "create",
@@ -38,8 +40,8 @@ def issue_create(
         "--label",
         f"type: {type_label}",
     ]
-    if milestone is not None:
-        args += ["--milestone", str(milestone)]
+    if milestone_title is not None:
+        args += ["--milestone", milestone_title]
     try:
         url = gh(*args, capture=True)
     except subprocess.CalledProcessError:
