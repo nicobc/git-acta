@@ -28,14 +28,14 @@ def detect_scheme(existing_tags: list[str]) -> Scheme | None:
     return next(iter(found_schemes))
 
 
-def next_calver(existing_tags: list[str], today: date) -> str:
+def compute_next_calver(existing_tags: list[str], today: date) -> str:
     prefix = f"v{today.year}.{today.month:02d}."
     month_tags = [tag for tag in existing_tags if re.fullmatch(rf"{re.escape(prefix)}\d+", tag)]
     last_counter = max((int(tag[len(prefix) :]) for tag in month_tags), default=0)
     return f"{prefix}{last_counter + 1}"
 
 
-def next_semver(existing_tags: list[str], bump: str) -> str:
+def compute_next_semver(existing_tags: list[str], bump: str) -> str:
     semver_tags = sorted(
         [
             tag

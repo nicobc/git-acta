@@ -6,12 +6,12 @@ from gitclerk.git.tag import (
     CALVER,
     SEMVER,
     Scheme,
+    compute_next_calver,
+    compute_next_semver,
     create_tag,
     detect_scheme,
     fetch_tags,
     list_tags,
-    next_calver,
-    next_semver,
 )
 
 
@@ -61,12 +61,12 @@ def release(scheme: Scheme | None, bump: str | None, confirmed: bool) -> None:
         )
         scheme = CALVER if scheme_input == CALVER else SEMVER
     if scheme == CALVER:
-        tag = next_calver(existing_tags, date.today())
+        tag = compute_next_calver(existing_tags, date.today())
     else:
         resolved_bump: str = bump or click.prompt(
             "Bump", type=click.Choice(["patch", "minor", "major"]), show_choices=True
         )
-        tag = next_semver(existing_tags, resolved_bump)
+        tag = compute_next_semver(existing_tags, resolved_bump)
     if not confirmed:
         click.confirm(f"Tag and push {tag}", abort=True)
     create_tag(tag)

@@ -2,7 +2,14 @@ from datetime import date
 
 import pytest
 
-from gitclerk.git.tag import CALVER, SEMVER, Scheme, detect_scheme, next_calver, next_semver
+from gitclerk.git.tag import (
+    CALVER,
+    SEMVER,
+    Scheme,
+    compute_next_calver,
+    compute_next_semver,
+    detect_scheme,
+)
 
 
 @pytest.mark.parametrize(
@@ -35,8 +42,8 @@ def test_detect_scheme_mixed_raises() -> None:
     ],
     ids=["no_tags", "one_tag", "three_tags", "previous_month_resets", "mixed_months"],
 )
-def test_next_calver(today: date, input_tags: list[str], expected: str) -> None:
-    assert next_calver(input_tags, today) == expected
+def test_compute_next_calver(today: date, input_tags: list[str], expected: str) -> None:
+    assert compute_next_calver(input_tags, today) == expected
 
 
 @pytest.mark.parametrize(
@@ -51,5 +58,5 @@ def test_next_calver(today: date, input_tags: list[str], expected: str) -> None:
     ],
     ids=["no_tags", "patch", "minor", "major", "picks_highest", "ignores_calver"],
 )
-def test_next_semver(input_tags: list[str], input_bump: str, expected: str) -> None:
-    assert next_semver(input_tags, input_bump) == expected
+def test_compute_next_semver(input_tags: list[str], input_bump: str, expected: str) -> None:
+    assert compute_next_semver(input_tags, input_bump) == expected
