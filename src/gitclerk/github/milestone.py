@@ -1,7 +1,7 @@
 import json
 from dataclasses import dataclass
 
-from gitclerk.github import gh, repo
+from gitclerk.github import get_repo, gh
 
 _SCOPE_PREFIX = "scope: "
 
@@ -32,9 +32,9 @@ def milestone_create(
     description: str = "",
 ) -> int:
     gh_description = _build_description(scope, description)
-    out = gh(
+    response_json = gh(
         "api",
-        f"repos/{repo()}/milestones",
+        f"repos/{get_repo()}/milestones",
         "--method",
         "POST",
         "-f",
@@ -43,63 +43,65 @@ def milestone_create(
         f"description={gh_description}",
         capture=True,
     )
-    return int(json.loads(out)["number"])
+    return int(json.loads(response_json)["number"])
 
 
 def milestone_list() -> list[MilestoneListItem]:
-    out = gh("api", f"repos/{repo()}/milestones", "-X", "GET", "-f", "state=open", capture=True)
-    items: list[MilestoneListItem] = []
-    for m in json.loads(out):
-        scope, description = parse_description(str(m.get("description") or ""))
-        items.append(
+    response_json = gh(
+        "api", f"repos/{get_repo()}/milestones", "-X", "GET", "-f", "state=open", capture=True
+    )
+    milestone_items: list[MilestoneListItem] = []
+    for milestone_data in json.loads(response_json):
+        scope, description = parse_description(str(milestone_data.get("description") or ""))
+        milestone_items.append(
             MilestoneListItem(
-                number=int(m["number"]),
-                title=str(m["title"]),
+                number=int(milestone_data["number"]),
+                title=str(milestone_data["title"]),
                 scope=scope,
                 description=description,
-                open_issues=int(m["open_issues"]),
-                closed_issues=int(m["closed_issues"]),
+                open_issues=int(milestone_data["open_issues"]),
+                closed_issues=int(milestone_data["closed_issues"]),
             )
         )
-    return items
+    return milestone_items
 
 
 def milestone_view(number: int) -> MilestoneDetail:
-    out = gh("api", f"repos/{repo()}/milestones/{number}", capture=True)
-    raw = json.loads(out)
-    scope, description = parse_description(str(raw.get("description") or ""))
+    response_json = gh("api", f"repos/{get_repo()}/milestones/{number}", capture=True)
+    milestone_data = json.loads(response_json)
+    scope, description = parse_description(str(milestone_data.get("description") or ""))
     return MilestoneDetail(
-        number=int(raw["number"]),
-        title=str(raw["title"]),
+        number=int(milestone_data["number"]),
+        title=str(milestone_data["title"]),
         scope=scope,
         description=description,
-        open_issues=int(raw["open_issues"]),
-        state=str(raw["state"]),
+        open_issues=int(milestone_data["open_issues"]),
+        state=str(milestone_data["state"]),
     )
 
 
 def milestone_reopen(number: int) -> None:
-    gh("api", f"repos/{repo()}/milestones/{number}", "--method", "PATCH", "-f", "state=open")
+    gh("api", f"repos/{get_repo()}/milestones/{number}", "--method", "PATCH", "-f", "state=open")
 
 
 def milestone_close(number: int) -> None:
-    gh("api", f"repos/{repo()}/milestones/{number}", "--method", "PATCH", "-f", "state=closed")
+    gh("api", f"repos/{get_repo()}/milestones/{number}", "--method", "PATCH", "-f", "state=closed")
 
 
 def _build_description(scope: str, description: str) -> str:
-    parts = [f"scope: {scope}"]
+    description_parts = [f"scope: {scope}"]
     if description:
-        parts.append(description)
-    return "\n\n".join(parts)
+        description_parts.append(description)
+    return "\n\n".join(description_parts)
 
 
-def parse_description(raw: str) -> tuple[str, str]:
+def parse_description(raw_description: str) -> tuple[str, str]:
     """Returns (scope, description) from a GitHub milestone description."""
-    lines = raw.split("\n")
+    lines = raw_description.split("\n")
     scope = ""
     if lines and lines[0].startswith(_SCOPE_PREFIX):
         scope = lines[0][len(_SCOPE_PREFIX) :]
-        rest = "\n".join(lines[1:]).strip()
+        remaining_description = "\n".join(lines[1:]).strip()
     else:
-        rest = raw.strip()
-    return scope, rest
+        remaining_description = raw_description.strip()
+    return scope, remaining_description

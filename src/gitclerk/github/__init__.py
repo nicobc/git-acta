@@ -2,7 +2,7 @@ import functools
 import subprocess
 from urllib.parse import urlparse
 
-from gitclerk.git import remote_url
+from gitclerk.git import get_remote_url
 
 
 def parse_repo_from_url(url: str) -> str:
@@ -10,22 +10,22 @@ def parse_repo_from_url(url: str) -> str:
         path = urlparse(url).path.lstrip("/")
     else:
         _, _, path = url.partition(":")
-    repo = path.removesuffix(".git")
-    parts = repo.split("/")
-    if len(parts) != 2 or not all(parts):
+    repo_slug = path.removesuffix(".git")
+    repo_parts = repo_slug.split("/")
+    if len(repo_parts) != 2 or not all(repo_parts):
         raise ValueError(f"cannot parse GitHub repo from remote URL: {url}")
-    return repo
+    return repo_slug
 
 
 def gh(*args: str, capture: bool = False) -> str:
     try:
-        result = subprocess.run(
+        completed_process = subprocess.run(
             ["gh", *args],
             check=True,
             text=True,
             stdout=subprocess.PIPE if capture else None,
         )
-        return result.stdout.strip() if result.stdout else ""
+        return completed_process.stdout.strip() if completed_process.stdout else ""
     except FileNotFoundError:
         raise RuntimeError(
             "'gh' not found in PATH — install the GitHub CLI: https://cli.github.com"
@@ -35,9 +35,9 @@ def gh(*args: str, capture: bool = False) -> str:
 
 
 @functools.cache
-def repo() -> str:
-    url = remote_url("origin")
+def get_repo() -> str:
+    origin_url = get_remote_url("origin")
     try:
-        return parse_repo_from_url(url)
-    except ValueError as e:
-        raise RuntimeError(str(e)) from e
+        return parse_repo_from_url(origin_url)
+    except ValueError as error:
+        raise RuntimeError(str(error)) from error

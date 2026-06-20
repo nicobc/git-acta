@@ -5,8 +5,8 @@ from gitclerk.git import git
 
 def get_active_issue() -> int | None:
     try:
-        value = git("config", "--get", "clerk.active-issue", capture=True)
-        return int(value) if value else None
+        config_value = git("config", "--get", "clerk.active-issue", capture=True)
+        return int(config_value) if config_value else None
     except subprocess.CalledProcessError:
         return None
 

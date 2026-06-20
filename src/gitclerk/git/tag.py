@@ -12,37 +12,41 @@ _CALVER_RE = re.compile(r"v\d{4}\.\d{2}\.\d+")
 _SEMVER_RE = re.compile(r"v\d+\.\d+\.\d+")
 
 
-def detect_scheme(existing: list[str]) -> Scheme | None:
-    found: set[Scheme] = set()
-    for t in existing:
-        if _CALVER_RE.fullmatch(t):
-            found.add(CALVER)
-        elif _SEMVER_RE.fullmatch(t):
-            found.add(SEMVER)
-    if not found:
+def detect_scheme(existing_tags: list[str]) -> Scheme | None:
+    found_schemes: set[Scheme] = set()
+    for tag in existing_tags:
+        if _CALVER_RE.fullmatch(tag):
+            found_schemes.add(CALVER)
+        elif _SEMVER_RE.fullmatch(tag):
+            found_schemes.add(SEMVER)
+    if not found_schemes:
         return None
-    if len(found) > 1:
+    if len(found_schemes) > 1:
         raise ValueError(
             f"mixed {CALVER} and {SEMVER} tags found — pass --calver or --semver to proceed"
         )
-    return next(iter(found))
+    return next(iter(found_schemes))
 
 
-def next_calver(existing: list[str], today: date) -> str:
+def next_calver(existing_tags: list[str], today: date) -> str:
     prefix = f"v{today.year}.{today.month:02d}."
-    month_tags = [t for t in existing if re.fullmatch(rf"{re.escape(prefix)}\d+", t)]
-    last = max((int(t[len(prefix) :]) for t in month_tags), default=0)
-    return f"{prefix}{last + 1}"
+    month_tags = [tag for tag in existing_tags if re.fullmatch(rf"{re.escape(prefix)}\d+", tag)]
+    last_counter = max((int(tag[len(prefix) :]) for tag in month_tags), default=0)
+    return f"{prefix}{last_counter + 1}"
 
 
-def next_semver(existing: list[str], bump: str) -> str:
+def next_semver(existing_tags: list[str], bump: str) -> str:
     semver_tags = sorted(
-        [t for t in existing if _SEMVER_RE.fullmatch(t) and not _CALVER_RE.fullmatch(t)],
-        key=lambda t: tuple(int(x) for x in t[1:].split(".")),
+        [
+            tag
+            for tag in existing_tags
+            if _SEMVER_RE.fullmatch(tag) and not _CALVER_RE.fullmatch(tag)
+        ],
+        key=lambda tag: tuple(int(part) for part in tag[1:].split(".")),
     )
     if not semver_tags:
         return "v0.1.0"
-    major, minor, patch = (int(x) for x in semver_tags[-1][1:].split("."))
+    major, minor, patch = (int(part) for part in semver_tags[-1][1:].split("."))
     if bump == "major":
         return f"v{major + 1}.0.0"
     if bump == "minor":
@@ -54,12 +58,12 @@ def fetch_tags() -> None:
     git("fetch", "--tags", "origin")
 
 
-def tags(pattern: str = "v*") -> list[str]:
-    return [t for t in git("tag", "--list", pattern, capture=True).splitlines() if t]
+def list_tags(pattern: str = "v*") -> list[str]:
+    return [tag for tag in git("tag", "--list", pattern, capture=True).splitlines() if tag]
 
 
 def create_tag(tag: str, ref: str = "origin/main") -> None:
-    if tag in tags():
+    if tag in list_tags():
         raise RuntimeError(
             f"tag '{tag}' already exists — re-run 'git clerk release' to get the next version"
         )

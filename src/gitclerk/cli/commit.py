@@ -1,7 +1,7 @@
 import click
 
 from gitclerk.cli.shared import TYPE_CHOICE, open_editor
-from gitclerk.git.branch import current_branch
+from gitclerk.git.branch import get_current_branch
 from gitclerk.git.branch import parse as parse_branch
 from gitclerk.git.commit import add_all
 from gitclerk.git.commit import commit as git_commit
@@ -44,11 +44,11 @@ def commit(
     """
     if body and edit_body:
         raise click.UsageError("BODY and --edit are mutually exclusive")
-    br = current_branch()
+    branch_name = get_current_branch()
     try:
-        type_, scope = parse_branch(br)
-    except ValueError as e:
-        raise click.ClickException(str(e))
+        type_, scope = parse_branch(branch_name)
+    except ValueError as error:
+        raise click.ClickException(str(error))
     header = f"{type_override or type_}({scope_override or scope}): {description}"
     if edit_body:
         body = open_editor(header)

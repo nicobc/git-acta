@@ -6,10 +6,10 @@ def add_all() -> None:
 
 
 def commit(header: str, body: str | None = None) -> None:
-    args = ["commit", "-m", header]
+    commit_args = ["commit", "-m", header]
     if body:
-        args += ["-m", body]
-    git(*args)
+        commit_args += ["-m", body]
+    git(*commit_args)
 
 
 def push_head() -> None:

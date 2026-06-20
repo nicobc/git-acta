@@ -3,7 +3,7 @@ from click.testing import CliRunner
 from pytest_subprocess import FakeProcess
 
 from gitclerk.cli import main
-from gitclerk.git.branch import TYPES, current_branch
+from gitclerk.git.branch import TYPES, get_current_branch
 from gitclerk.git.config import get_active_issue
 from gitclerk.github.label import TYPE_COLORS
 
@@ -214,7 +214,7 @@ class TestIssueStart:
             "\n"
             "## Description\nLogin form with magic link.\n"
         )
-        assert current_branch() == "feat/auth"
+        assert get_current_branch() == "feat/auth"
         assert get_active_issue() == 1
 
     @pytest.mark.usefixtures("git_repo_with_github_remote")

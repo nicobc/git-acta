@@ -2,14 +2,14 @@ import pytest
 from click.testing import CliRunner
 
 from gitclerk.cli import main
-from gitclerk.git.branch import current_branch, switch_main, switch_new_branch
+from gitclerk.git.branch import get_current_branch, switch_main, switch_new_branch
 
 
 @pytest.mark.usefixtures("git_repo")
 def test_creates_branch_from_origin_main(runner: CliRunner) -> None:
     result = runner.invoke(main, ["branch", "feat/my-scope"])
     assert result.exit_code == 0, result.output
-    assert current_branch() == "feat/my-scope"
+    assert get_current_branch() == "feat/my-scope"
 
 
 @pytest.mark.usefixtures("git_repo")
@@ -25,4 +25,4 @@ def test_rejects_existing_branch(runner: CliRunner) -> None:
     switch_main()
     result = runner.invoke(main, ["branch", "feat/my-scope"])
     assert result.exit_code == 128
-    assert current_branch() == "main"
+    assert get_current_branch() == "main"

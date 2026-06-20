@@ -2,7 +2,7 @@ import click
 
 from gitclerk.cli.issue import format_issue_lines
 from gitclerk.cli.milestone import format_milestone_line
-from gitclerk.git.branch import current_branch
+from gitclerk.git.branch import get_current_branch
 from gitclerk.git.config import get_active_issue
 from gitclerk.github.issue import issue_list, issue_view
 from gitclerk.github.milestone import milestone_list
@@ -11,7 +11,7 @@ from gitclerk.github.milestone import milestone_list
 @click.command()
 def board() -> None:
     """Session snapshot: active work, current milestone, and backlog."""
-    branch_name = current_branch()
+    branch_name = get_current_branch()
     click.echo(f"Current branch: {branch_name}")
     active_issue_number = get_active_issue()
     focus_milestone_number: int | None = None
