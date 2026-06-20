@@ -10,7 +10,7 @@ def branch(name: str) -> None:
     """Create a branch from origin/main."""
     try:
         parse_branch(name)
-    except ValueError as e:
-        raise click.ClickException(str(e))
+    except ValueError as error:
+        raise click.ClickException(str(error))
     fetch_origin()
     switch_new_branch(name)

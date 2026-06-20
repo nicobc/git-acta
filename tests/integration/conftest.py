@@ -14,9 +14,9 @@ FAKE_REMOTE_URL = f"https://github.com/{FAKE_REPO}.git"
 
 @pytest.fixture(autouse=True)
 def clear_repo_cache() -> Generator[None, None, None]:
-    github.repo.cache_clear()
+    github.get_repo.cache_clear()
     yield
-    github.repo.cache_clear()
+    github.get_repo.cache_clear()
 
 
 @pytest.fixture
@@ -44,13 +44,13 @@ def git_repo_with_github_remote(git_repo: Path, monkeypatch: pytest.MonkeyPatch)
     """git_repo where gitclerk.github sees a fake GitHub URL for the origin remote.
 
     All real git operations (fetch, push) still target the local bare repo.
-    Only remote_url() — the one call that feeds into gh commands — is patched.
+    Only get_remote_url() — the one call that feeds into gh commands — is patched.
     """
 
-    def stub_remote_url(name: str) -> str:
+    def stub_remote_url(remote_name: str) -> str:
         return FAKE_REMOTE_URL
 
-    monkeypatch.setattr("gitclerk.github.remote_url", stub_remote_url)
+    monkeypatch.setattr("gitclerk.github.get_remote_url", stub_remote_url)
     return git_repo
 
 

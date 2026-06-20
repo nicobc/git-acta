@@ -6,7 +6,7 @@ from click.testing import CliRunner
 from pytest_subprocess import FakeProcess
 
 from gitclerk.cli import main
-from gitclerk.git.branch import branch_exists, current_branch, switch_main, switch_new_branch
+from gitclerk.git.branch import branch_exists, get_current_branch, switch_main, switch_new_branch
 from gitclerk.git.commit import add_all
 from gitclerk.git.commit import commit as git_commit
 from gitclerk.git.config import get_active_issue, set_active_issue
@@ -79,7 +79,7 @@ class TestShip:
     def test_merges_pr_and_returns_to_main(self, runner: CliRunner) -> None:
         result = runner.invoke(main, ["ship", "-y"])
         assert result.exit_code == 0, result.output
-        assert current_branch() == "main"
+        assert get_current_branch() == "main"
         assert not branch_exists("feat/my-scope")
 
     @pytest.mark.usefixtures("_checks_pass")
@@ -93,7 +93,7 @@ class TestShip:
         )
         result = runner.invoke(main, ["ship", "-y", "--update", "feat/other"])
         assert result.exit_code == 0, result.output
-        assert current_branch() == "feat/other"
+        assert get_current_branch() == "feat/other"
 
     def test_ships_when_no_checks_reported(self, runner: CliRunner, fp: FakeProcess) -> None:
         fp.register(  # pyright: ignore[reportUnknownMemberType]

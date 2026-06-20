@@ -10,10 +10,10 @@ class CLIGroup(click.Group):
     def invoke(self, ctx: click.Context) -> object:
         try:
             return super().invoke(ctx)
-        except subprocess.CalledProcessError as e:
-            sys.exit(e.returncode)
-        except RuntimeError as e:
-            raise click.ClickException(str(e)) from e
+        except subprocess.CalledProcessError as error:
+            sys.exit(error.returncode)
+        except RuntimeError as error:
+            raise click.ClickException(str(error)) from error
 
 
 def strip_comments(text: str) -> str:
@@ -31,11 +31,11 @@ def strip_comments(text: str) -> str:
 
 def open_editor(hint: str) -> str:
     template = f"# {hint}\n# Lines starting with '#' are ignored.\n\n"
-    raw = click.edit(template)
-    result = strip_comments(raw or "")
-    if not result:
+    edited_text = click.edit(template)
+    body_text = strip_comments(edited_text or "")
+    if not body_text:
         raise click.Abort()
-    return result
+    return body_text
 
 
 TYPE_CHOICE = click.Choice(sorted(TYPES))

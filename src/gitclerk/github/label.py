@@ -1,5 +1,5 @@
 from gitclerk.git.branch import TYPES
-from gitclerk.github import gh, repo
+from gitclerk.github import get_repo, gh
 
 TYPE_COLORS: dict[str, str] = {
     "build": "0075ca",
@@ -19,4 +19,4 @@ TYPE_COLORS: dict[str, str] = {
 def ensure_type_labels() -> None:
     for type_ in TYPES:
         color = TYPE_COLORS.get(type_, "ededed")
-        gh("label", "create", f"type: {type_}", "--color", color, "--force", "--repo", repo())
+        gh("label", "create", f"type: {type_}", "--color", color, "--force", "--repo", get_repo())

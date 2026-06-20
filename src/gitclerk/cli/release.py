@@ -9,9 +9,9 @@ from gitclerk.git.tag import (
     create_tag,
     detect_scheme,
     fetch_tags,
+    list_tags,
     next_calver,
     next_semver,
-    tags,
 )
 
 
@@ -44,29 +44,29 @@ def release(scheme: Scheme | None, bump: str | None, confirmed: bool) -> None:
     first use. Pass --calver or --semver to skip the prompt.
     """
     fetch_tags()
-    existing = tags()
+    existing_tags = list_tags()
     if not scheme:
         try:
-            scheme = detect_scheme(existing)
-        except ValueError as e:
-            raise click.ClickException(str(e))
+            scheme = detect_scheme(existing_tags)
+        except ValueError as error:
+            raise click.ClickException(str(error))
     if not scheme:
         click.echo("No existing tags found. Choose a versioning scheme:")
         click.echo(
             f"  {CALVER}   vYYYY.MM.N         — calendar versioning, counter resets each month"
         )
         click.echo(f"  {SEMVER}   vMAJOR.MINOR.PATCH — semantic versioning")
-        raw = click.prompt(
+        scheme_input = click.prompt(
             "Scheme", type=click.Choice([CALVER, SEMVER], case_sensitive=False), show_choices=False
         )
-        scheme = CALVER if raw == CALVER else SEMVER
+        scheme = CALVER if scheme_input == CALVER else SEMVER
     if scheme == CALVER:
-        tag = next_calver(existing, date.today())
+        tag = next_calver(existing_tags, date.today())
     else:
         resolved_bump: str = bump or click.prompt(
             "Bump", type=click.Choice(["patch", "minor", "major"]), show_choices=True
         )
-        tag = next_semver(existing, resolved_bump)
+        tag = next_semver(existing_tags, resolved_bump)
     if not confirmed:
         click.confirm(f"Tag and push {tag}", abort=True)
     create_tag(tag)

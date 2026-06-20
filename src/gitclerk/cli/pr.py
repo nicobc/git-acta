@@ -2,8 +2,8 @@ import click
 
 from gitclerk.cli.shared import TYPE_CHOICE, open_editor
 from gitclerk.git.branch import (
-    current_branch,
     delete_branch,
+    get_current_branch,
     merge_origin_main,
     pull_origin_main,
     switch_branch,
@@ -51,18 +51,18 @@ def pr(
     """
     if body and edit_body:
         raise click.UsageError("BODY and --edit are mutually exclusive")
-    br = current_branch()
+    branch_name = get_current_branch()
     try:
-        type_, scope = parse_branch(br)
-    except ValueError as e:
-        raise click.ClickException(str(e))
+        type_, scope = parse_branch(branch_name)
+    except ValueError as error:
+        raise click.ClickException(str(error))
     pr_title = f"{type_override or type_}({scope_override or scope}): {title}"
     if edit_body:
-        body = open_editor(f"{pr_title} ({br})")
-    active = get_active_issue()
-    if active is not None:
-        closes = f"Closes #{active}"
-        body = f"{body}\n\n{closes}" if body else closes
+        body = open_editor(f"{pr_title} ({branch_name})")
+    active_issue_number = get_active_issue()
+    if active_issue_number is not None:
+        closes_footer = f"Closes #{active_issue_number}"
+        body = f"{body}\n\n{closes_footer}" if body else closes_footer
     push_head()
     number, url = pr_create(pr_title, body or "")
     click.echo(url)
@@ -85,8 +85,8 @@ def ship(update_branch: str | None, confirmed: bool) -> None:
     Squash-merges the current branch's PR, deletes the remote branch, switches
     to local main, pulls, and force-deletes the local branch.
     """
-    br = current_branch()
-    if br == "main":
+    branch_name = get_current_branch()
+    if branch_name == "main":
         raise click.ClickException("run 'git clerk ship' from the feature branch, not main")
     pr_number, title = pr_view()
     prompt = f'Ship "{title}" (#{pr_number})'
@@ -98,27 +98,29 @@ def ship(update_branch: str | None, confirmed: bool) -> None:
         raise click.ClickException(
             f"PR #{pr_number} has failing or pending checks — run 'git clerk watch' to monitor"
         )
-    active = get_active_issue()
+    active_issue_number = get_active_issue()
     milestone_number: int | None = None
-    if active is not None:
-        issue_data = issue_view(active)
-        ms = issue_data.milestone
-        if ms is not None:
-            milestone_number = ms.number
+    if active_issue_number is not None:
+        active_issue = issue_view(active_issue_number)
+        milestone_ref = active_issue.milestone
+        if milestone_ref is not None:
+            milestone_number = milestone_ref.number
     pr_merge(pr_number)
     switch_main()
     pull_origin_main()
-    delete_branch(br)
+    delete_branch(branch_name)
     if update_branch:
         switch_branch(update_branch)
         merge_origin_main()
-    if active is not None:
+    if active_issue_number is not None:
         clear_active_issue()
     if milestone_number is not None:
-        m = milestone_view(milestone_number)
-        if m.open_issues == 0:
+        milestone_detail = milestone_view(milestone_number)
+        if milestone_detail.open_issues == 0:
             milestone_close(milestone_number)
-            click.echo(f'Milestone #{milestone_number} "{m.title}" completed and closed.')
+            click.echo(
+                f'Milestone #{milestone_number} "{milestone_detail.title}" completed and closed.'
+            )
 
 
 @click.command()

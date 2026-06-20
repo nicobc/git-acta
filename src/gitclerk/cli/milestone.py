@@ -1,7 +1,7 @@
 import click
 
 from gitclerk.cli.shared import CLIGroup, open_editor
-from gitclerk.github import repo
+from gitclerk.github import get_repo
 from gitclerk.github.milestone import (
     MilestoneListItem,
     milestone_create,
@@ -11,7 +11,7 @@ from gitclerk.github.milestone import (
 
 
 def get_repo_name() -> str:
-    return repo().split("/")[-1]
+    return get_repo().split("/")[-1]
 
 
 def format_milestone_line(milestone_list_item: MilestoneListItem) -> str:
