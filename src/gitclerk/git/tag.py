@@ -3,6 +3,7 @@ from datetime import date
 from typing import Final, Literal, TypeAlias
 
 from gitclerk.git import git
+from gitclerk.git.commit import commit_subjects
 
 CALVER: Final = "CalVer"
 SEMVER: Final = "SemVer"
@@ -10,6 +11,7 @@ Scheme: TypeAlias = Literal["CalVer", "SemVer"]
 
 _CALVER_RE = re.compile(r"v\d{4}\.\d{2}\.\d+")
 _SEMVER_RE = re.compile(r"v\d+\.\d+\.\d+")
+_CONVENTIONAL_HEADER_RE = re.compile(r"(?P<type>\w+)(\([^)]*\))?(?P<breaking>!)?:")
 
 
 def detect_scheme(existing_tags: list[str]) -> Scheme | None:
@@ -47,6 +49,32 @@ def latest_semver_tag(existing_tags: list[str]) -> str | None:
     return semver_tags[-1] if semver_tags else None
 
 
+def semver_major(tag: str) -> int:
+    return int(tag[1:].split(".")[0])
+
+
+def derive_bump(commit_subjects: list[str], current_major: int) -> str:
+    """Derive the SemVer bump from the conventional-commit subjects since the last release.
+
+    A `!` breaking marker bumps major once stable (1.0+); while still 0.x it is capped at
+    minor, since a pre-1.0 breaking change must not force 1.0.0 — that is the deliberate
+    `--stable` decision. A `feat` bumps minor; anything else, patch.
+    """
+    has_breaking = False
+    has_feat = False
+    for subject in commit_subjects:
+        header = _CONVENTIONAL_HEADER_RE.match(subject)
+        if header is None:
+            continue
+        has_breaking = has_breaking or header.group("breaking") is not None
+        has_feat = has_feat or header.group("type") == "feat"
+    if has_breaking and current_major >= 1:
+        return "major"
+    if has_breaking or has_feat:
+        return "minor"
+    return "patch"
+
+
 def compute_next_semver(existing_tags: list[str], bump: str) -> str:
     latest = latest_semver_tag(existing_tags)
     if latest is None:
@@ -57,6 +85,21 @@ def compute_next_semver(existing_tags: list[str], bump: str) -> str:
     if bump == "minor":
         return f"v{major}.{minor + 1}.0"
     return f"v{major}.{minor}.{patch + 1}"
+
+
+def next_release_tag(existing_tags: list[str], stable: bool) -> str:
+    """The next SemVer tag: a deliberate v1.0.0 with `stable`, else derived from commits.
+
+    Raises ValueError if `stable` is requested on an already-stable (1.0+) project.
+    """
+    latest = latest_semver_tag(existing_tags)
+    if stable:
+        if latest is not None and semver_major(latest) >= 1:
+            raise ValueError("--stable only promotes 0.x to v1.0.0; this project is already stable")
+        return "v1.0.0"
+    current_major = semver_major(latest) if latest is not None else 0
+    subjects = commit_subjects(f"{latest}..origin/main") if latest is not None else []
+    return compute_next_semver(existing_tags, derive_bump(subjects, current_major))
 
 
 def fetch_tags() -> None:

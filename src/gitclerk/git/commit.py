@@ -14,3 +14,7 @@ def commit(header: str, body: str | None = None) -> None:
 
 def push_head() -> None:
     git("push", "--set-upstream", "origin", "HEAD")
+
+
+def commit_subjects(rev_range: str) -> list[str]:
+    return git("log", rev_range, "--format=%s", capture=True).splitlines()

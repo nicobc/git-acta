@@ -446,22 +446,20 @@ git clerk issue discard 3
 
 ### `release`
 
-Tags the current tip of `origin/main` and pushes the tag. Supports CalVer and SemVer.
+Tags the current tip of `origin/main` and pushes the tag. It fetches the latest tags, computes the next version, shows it, and asks for confirmation before pushing. Supports CalVer and SemVer.
 
-git-clerk fetches the latest tags, computes the next version, shows you what it's about to create, and asks for confirmation before pushing anything.
+For SemVer the bump is derived from the conventional-commit subjects since the last tag: a `feat` bumps minor, anything else bumps patch, and once the project is stable (1.0+) a `!` breaking change bumps major. While still 0.x a breaking change is capped at minor, since a pre-1.0 breaking change must not force `v1.0.0`. There is no `--bump`: the commits decide.
 
 ```sh
-git clerk release                      # auto-detect scheme, prompt for bump if SemVer
-git clerk release --semver --bump minor
-git clerk release --semver --bump major
-git clerk release --calver
+git clerk release             # derive and tag the next version (auto-detects scheme)
+git clerk release --semver    # force SemVer (only needed for the very first tag)
+git clerk release --calver    # use calendar versioning instead
+git clerk release --stable    # one-time promotion of a 0.x project to v1.0.0
 ```
 
-**Scheme detection**
+**Going stable.** `v1.0.0` is the one version the commits cannot derive: the 0.x cap stops at minor, because declaring stability is a deliberate decision. Pass `--stable` once to make that jump. After 1.0, breaking changes drive majors automatically, so there is no further override.
 
-If the repository already has version tags, git-clerk detects the scheme automatically — `--calver` and `--semver` are not needed. If no tags exist yet, git-clerk prompts you to choose interactively. Pass `--calver` or `--semver` to skip the prompt.
-
-If both CalVer and SemVer tags are found (e.g. after a scheme migration), git-clerk exits with an error. Pass `--calver` or `--semver` explicitly to proceed.
+**Scheme detection.** If the repository already has version tags, git-clerk detects the scheme automatically, so `--calver` and `--semver` are not needed. If no tags exist yet, it prompts you to choose. If both CalVer and SemVer tags are found, it exits with an error; pass `--calver` or `--semver` explicitly to proceed.
 
 **Options**
 
@@ -469,7 +467,7 @@ If both CalVer and SemVer tags are found (e.g. after a scheme migration), git-cl
 |------|-------------|
 | `--calver` | Use calendar versioning |
 | `--semver` | Use semantic versioning |
-| `--bump patch\|minor\|major` | SemVer component to increment; prompted if not provided (ignored for CalVer) |
+| `--stable` | Promote a 0.x project to `v1.0.0` (SemVer only, one-time) |
 | `-y` / `--yes` | Skip the confirmation prompt |
 
 ## Versioning schemes
