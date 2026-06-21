@@ -3,11 +3,12 @@
 
 Maintainer-only — this script is not part of the published package. Run from the repo root:
 
-    uv run scripts/release.py {patch|minor|major}
+    uv run scripts/release.py            # version derived from commits since the last tag
+    uv run scripts/release.py --stable   # one-time promotion of a 0.x project to v1.0.0
 
 Git tags are the source of truth for the version; pyproject.toml is overwritten to mirror
-the new tag. The version is computed from the existing tags with the same function `git
-clerk release` uses, so the script and the tag it pushes always agree.
+the new tag. The tag is computed with the same function `git clerk release` uses, so the
+script and the tag it pushes always agree.
 """
 
 import argparse
@@ -16,7 +17,7 @@ import subprocess
 import time
 from pathlib import Path
 
-from gitclerk.git.tag import compute_next_semver, fetch_tags, latest_semver_tag, list_tags
+from gitclerk.git.tag import fetch_tags, list_tags, next_release_tag
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 PYPROJECT = REPO_ROOT / "pyproject.toml"
@@ -25,8 +26,6 @@ RUN_POLL_INTERVAL = 5  # seconds between checks for the publish run to appear
 RUN_QUEUE_TIMEOUT = 60  # give up if the publish run has not appeared within this many seconds
 
 _VERSION_RE = re.compile(r'^version = ".*"', re.MULTILINE)
-_HEADER_RE = re.compile(r"(?P<type>\w+)(\([^)]*\))?!?:")  # conventional commit header
-_BUMP_RANK = {"patch": 0, "minor": 1, "major": 2}
 
 
 def run(*command: str) -> None:
@@ -44,21 +43,6 @@ def write_pyproject_version(new_version: str) -> None:
     if not replaced:
         raise SystemExit("release: no version line found in pyproject.toml")
     PYPROJECT.write_text(new_text)
-
-
-def required_bump_since(tag: str) -> str:
-    """The minimum bump justified by the commits since `tag`.
-
-    `feat` since the last release implies `minor`; everything else, `patch`. `major` is
-    never inferred — there is no breaking-change marker in the squash history, and pre-1.0
-    a breaking change does not imply a major bump anyway.
-    """
-    subjects = capture("git", "log", f"{tag}..origin/main", "--format=%s").splitlines()
-    for subject in subjects:
-        header = _HEADER_RE.match(subject)
-        if header is not None and header.group("type") == "feat":
-            return "minor"
-    return "patch"
 
 
 def wait_for_publish_run(tag: str) -> str:
@@ -87,38 +71,32 @@ def wait_for_publish_run(tag: str) -> str:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Bump the version, ship, tag, and publish.")
-    parser.add_argument("bump", choices=["patch", "minor", "major"])
+    parser = argparse.ArgumentParser(description="Derive the version, ship, tag, and publish.")
+    parser.add_argument(
+        "--stable", action="store_true", help="Promote a 0.x project to v1.0.0 (one-time)."
+    )
     parser.add_argument(
         "--dry-run",
         action="store_true",
         help="Print the version and steps without changing anything.",
     )
     args = parser.parse_args()
-    bump: str = args.bump
+    stable: bool = args.stable
     dry_run: bool = args.dry_run
 
     fetch_tags()
-    tags = list_tags()
-
-    last_tag = latest_semver_tag(tags)
-    if last_tag is not None:
-        floor = required_bump_since(last_tag)
-        if _BUMP_RANK[bump] < _BUMP_RANK[floor]:
-            raise SystemExit(
-                f"release: commits since {last_tag} include a feat — bump must be at least "
-                f"'{floor}', got '{bump}'"
-            )
-
-    new_tag = compute_next_semver(tags, bump)
+    try:
+        new_tag = next_release_tag(list_tags(), stable)
+    except ValueError as error:
+        raise SystemExit(f"release: {error}")
     new_version = new_tag.removeprefix("v")
     title = f"bump version to {new_version}"
 
     if dry_run:
-        print(f"release: would tag {new_tag} ({bump})")
+        print(f"release: would tag {new_tag}")
         print(f"  set pyproject.toml + uv.lock to {new_version}")
         print(f'  git-clerk branch/commit/pr/ship for "{title}"')
-        print(f"  git-clerk release --bump {bump} -y, then watch the publish job")
+        print(f"  git-clerk release{' --stable' if stable else ''} -y, then watch the publish job")
         return
 
     write_pyproject_version(new_version)
@@ -128,7 +106,7 @@ def main() -> None:
     run("git-clerk", "commit", "-A", title)
     run("git-clerk", "pr", title)
     run("git-clerk", "ship", "-y")
-    run("git-clerk", "release", "--bump", bump, "-y")
+    run("git-clerk", "release", *(["--stable"] if stable else []), "-y")
 
     print(f"release: watching publish job for {new_tag}")
     run("gh", "run", "watch", wait_for_publish_run(new_tag), "--exit-status")

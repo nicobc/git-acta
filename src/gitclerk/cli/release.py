@@ -7,11 +7,11 @@ from gitclerk.git.tag import (
     SEMVER,
     Scheme,
     compute_next_calver,
-    compute_next_semver,
     create_tag,
     detect_scheme,
     fetch_tags,
     list_tags,
+    next_release_tag,
 )
 
 
@@ -31,17 +31,16 @@ from gitclerk.git.tag import (
     help="Use semantic versioning (vMAJOR.MINOR.PATCH).",
 )
 @click.option(
-    "--bump",
-    type=click.Choice(["patch", "minor", "major"]),
-    default=None,
-    help="SemVer component to increment (ignored for CalVer). Prompted if not provided.",
+    "--stable", is_flag=True, help="Promote a 0.x project to v1.0.0 (SemVer only, one-time)."
 )
 @click.option("-y", "--yes", "confirmed", is_flag=True, help="Skip confirmation prompt.")
-def release(scheme: Scheme | None, bump: str | None, confirmed: bool) -> None:
+def release(scheme: Scheme | None, stable: bool, confirmed: bool) -> None:
     """Tag origin/main and push the tag.
 
-    Auto-detects CalVer or SemVer from existing tags. Prompts for scheme on
-    first use. Pass --calver or --semver to skip the prompt.
+    The SemVer bump is derived from the conventional-commit subjects since the last
+    tag: a `feat` (or, once stable, a `!` breaking change) bumps minor (major when
+    stable); anything else, patch. While still 0.x a breaking change is capped at
+    minor — pass --stable for the deliberate one-time jump to v1.0.0.
     """
     fetch_tags()
     existing_tags = list_tags()
@@ -60,13 +59,15 @@ def release(scheme: Scheme | None, bump: str | None, confirmed: bool) -> None:
             "Scheme", type=click.Choice([CALVER, SEMVER], case_sensitive=False), show_choices=False
         )
         scheme = CALVER if scheme_input == CALVER else SEMVER
+    if stable and scheme == CALVER:
+        raise click.ClickException("--stable applies to SemVer only")
     if scheme == CALVER:
         tag = compute_next_calver(existing_tags, date.today())
     else:
-        resolved_bump: str = bump or click.prompt(
-            "Bump", type=click.Choice(["patch", "minor", "major"]), show_choices=True
-        )
-        tag = compute_next_semver(existing_tags, resolved_bump)
+        try:
+            tag = next_release_tag(existing_tags, stable)
+        except ValueError as error:
+            raise click.ClickException(str(error))
     if not confirmed:
         click.confirm(f"Tag and push {tag}", abort=True)
     create_tag(tag)
