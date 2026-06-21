@@ -194,7 +194,11 @@ class TestShipWithMilestone:
         )
         result = runner.invoke(main, ["ship", "-y"])
         assert result.exit_code == 0, result.output
-        assert result.output == 'Milestone #1 "Auth System" completed and closed.\n'
+        assert result.output == (
+            "Merged PR #1 feat/auth → main\n"
+            "Switched to main, pulled origin/main, deleted feat/auth.\n"
+            'Milestone #1 "Auth System" completed and closed.\n'
+        )
 
     def test_does_not_close_milestone_with_open_issues(
         self, runner: CliRunner, fp: FakeProcess
@@ -215,7 +219,10 @@ class TestShipWithMilestone:
         )
         result = runner.invoke(main, ["ship", "-y"])
         assert result.exit_code == 0, result.output
-        assert result.output == ""
+        assert result.output == (
+            "Merged PR #1 feat/auth → main\n"
+            "Switched to main, pulled origin/main, deleted feat/auth.\n"
+        )
 
 
 class TestWatch:

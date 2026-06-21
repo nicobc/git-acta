@@ -52,11 +52,11 @@ def switch_new_branch(name: str) -> None:
 
 
 def switch_main() -> None:
-    git("switch", "main")
+    git("switch", "main", quiet=True)
 
 
 def pull_origin_main() -> None:
-    git("pull", "origin", "main")
+    git("pull", "origin", "main", quiet=True)
 
 
 def branch_exists(name: str) -> bool:
@@ -64,12 +64,12 @@ def branch_exists(name: str) -> bool:
 
 
 def delete_branch(name: str) -> None:
-    git("branch", "-D", name)
+    git("branch", "-D", name, quiet=True)
 
 
 def switch_branch(name: str) -> None:
-    git("switch", name)
+    git("switch", name, quiet=True)
 
 
 def merge_origin_main() -> None:
-    git("merge", "origin/main")
+    git("merge", "origin/main", quiet=True)

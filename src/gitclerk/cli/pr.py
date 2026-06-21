@@ -113,12 +113,15 @@ def ship(update_branch: str | None, confirmed: bool) -> None:
         if milestone_ref is not None:
             milestone_number = milestone_ref.number
     pr_merge(pr_number)
+    click.echo(f"Merged PR #{pr_number} {branch_name} → main")
     switch_main()
     pull_origin_main()
     delete_branch(branch_name)
+    click.echo(f"Switched to main, pulled origin/main, deleted {branch_name}.")
     if update_branch:
         switch_branch(update_branch)
         merge_origin_main()
+        click.echo(f"Switched to {update_branch}, merged origin/main.")
     if active_issue_number is not None:
         clear_active_issue()
     if milestone_number is not None:
