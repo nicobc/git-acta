@@ -11,6 +11,8 @@ class CLIGroup(click.Group):
         try:
             return super().invoke(ctx)
         except subprocess.CalledProcessError as error:
+            if error.stderr:
+                click.echo(error.stderr, err=True, nl=False)
             sys.exit(error.returncode)
         except RuntimeError as error:
             raise click.ClickException(str(error)) from error
