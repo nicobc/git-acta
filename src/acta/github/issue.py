@@ -1,3 +1,5 @@
+"""Create, list, and view GitHub issues, including their type label and milestone."""
+
 import json
 import subprocess
 from dataclasses import dataclass
@@ -9,12 +11,16 @@ from acta.github.milestone import milestone_view
 
 @dataclass
 class MilestoneRef:
+    """The milestone an issue belongs to (number and title only)."""
+
     number: int
     title: str
 
 
 @dataclass
 class IssueInfo:
+    """A GitHub issue: number, title, conventional-commit type, milestone, and body."""
+
     number: int
     title: str
     type: str
@@ -28,6 +34,20 @@ def issue_create(
     body: str = "",
     milestone: int | None = None,
 ) -> int:
+    """Create an issue with a ``type: <type_label>`` label and optional milestone.
+
+    If the type label doesn't exist yet, the first create fails; the label set is
+    then provisioned via ``ensure_type_labels`` and the create is retried once.
+
+    Args:
+        title: Issue title.
+        type_label: Conventional-commit type, becomes the ``type: …`` label.
+        body: Issue body markdown.
+        milestone: Milestone number to attach, or None.
+
+    Returns:
+        The new issue's number.
+    """
     milestone_title = milestone_view(milestone).title if milestone is not None else None
     command_args = [
         "issue",
@@ -52,6 +72,7 @@ def issue_create(
 
 
 def issue_list(milestone: int | None = None) -> list[IssueInfo]:
+    """Return the open issues, optionally filtered to one milestone."""
     command_args = [
         "issue",
         "list",
@@ -84,6 +105,12 @@ def issue_list(milestone: int | None = None) -> list[IssueInfo]:
 
 
 def issue_view(number: int) -> IssueInfo:
+    """Fetch a single issue, including its body.
+
+    Raises:
+        RuntimeError: If the issue has no ``type: …`` label, since the workflow
+            derives the branch/commit type from it.
+    """
     response_json = gh(
         "issue",
         "view",
@@ -115,10 +142,12 @@ def issue_view(number: int) -> IssueInfo:
 
 
 def issue_close_not_planned(number: int) -> None:
+    """Close an issue as "not planned" (discarded rather than completed)."""
     gh("issue", "close", str(number), "--reason", "not planned", "--repo", get_repo())
 
 
 def _extract_type(labels: list[dict[str, str]]) -> str | None:
+    """Return the type from the first ``type: …`` label, or None if absent."""
     for label in labels:
         name = label.get("name", "")
         if name.startswith("type: "):

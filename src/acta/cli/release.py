@@ -1,3 +1,5 @@
+"""``acta release`` — compute and push the next version tag."""
+
 from datetime import date
 
 import click

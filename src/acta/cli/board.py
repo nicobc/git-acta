@@ -1,3 +1,5 @@
+"""``acta board`` — a session snapshot of active work and milestones."""
+
 import click
 
 from acta.cli.issue import format_issue_lines

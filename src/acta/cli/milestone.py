@@ -1,3 +1,5 @@
+"""``acta milestone`` — create, list, and reopen GitHub milestones."""
+
 import click
 
 from acta.cli.shared import CLIGroup, open_editor
@@ -11,10 +13,12 @@ from acta.github.milestone import (
 
 
 def get_repo_name() -> str:
+    """Return just the repository name (the ``repo`` half of ``owner/repo``)."""
     return get_repo().split("/")[-1]
 
 
 def format_milestone_line(milestone_list_item: MilestoneListItem) -> str:
+    """Render a milestone as a one-line summary with its open (and closed) issue counts."""
     noun = "issue" if milestone_list_item.open_issues == 1 else "issues"
     closed = (
         f", {milestone_list_item.closed_issues} closed" if milestone_list_item.closed_issues else ""
@@ -27,7 +31,7 @@ def format_milestone_line(milestone_list_item: MilestoneListItem) -> str:
 
 @click.group(cls=CLIGroup)
 def milestone() -> None:
-    """Manage milestones."""
+    """Create, list, and reopen milestones on the GitHub board."""
 
 
 @milestone.command(name="new")
@@ -42,7 +46,10 @@ def milestone() -> None:
 )
 @click.option("-e", "--edit", "edit_body", is_flag=True, help="Open $EDITOR for the description.")
 def new_milestone(title: str, scope: str, description: str | None, edit_body: bool) -> None:
-    """Create a new milestone."""
+    """Create a milestone whose --scope sets the branch scope for its issues.
+
+    Each issue started under it branches as `type/<scope>/N-title`.
+    """
     if description and edit_body:
         raise click.UsageError("--description and --edit are mutually exclusive")
     if edit_body:

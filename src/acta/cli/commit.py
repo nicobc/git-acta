@@ -1,3 +1,5 @@
+"""``acta commit`` — create a conventional commit from the branch name."""
+
 import click
 
 from acta.cli.shared import TYPE_CHOICE, open_editor, strip_type_prefix
