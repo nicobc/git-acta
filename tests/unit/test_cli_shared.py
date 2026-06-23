@@ -18,17 +18,18 @@ def test_subcommand_help_exits_zero(command: str) -> None:
     "raw, expected",
     [
         ("", ""),
-        ("# comment", ""),
-        ("# line one\n# line two", ""),
+        ("<!-- comment -->", ""),
+        ("<!-- line one -->\n<!-- line two -->", ""),
         ("some body", "some body"),
-        ("# comment\n\nsome body", "some body"),
-        ("some body\n\n# comment", "some body"),
+        ("<!-- comment -->\n\nsome body", "some body"),
+        ("some body\n\n<!-- comment -->", "some body"),
         (
-            "first paragraph\n\n# comment\n\nsecond paragraph",
+            "first paragraph\n\n<!-- comment -->\n\nsecond paragraph",
             "first paragraph\n\nsecond paragraph",
         ),
         ("\n\nsome body\n\n", "some body"),
-        ("a line with # hash inside", "a line with # hash inside"),
+        ("a line with <!-- comment --> inside", "a line with <!-- comment --> inside"),
+        ("## Changes\n\n- did a thing", "## Changes\n\n- did a thing"),
     ],
     ids=[
         "empty",
@@ -39,7 +40,8 @@ def test_subcommand_help_exits_zero(command: str) -> None:
         "trailing_comment",
         "comment_between_paragraphs",
         "strips_surrounding_whitespace",
-        "inline_hash_preserved",
+        "inline_comment_preserved",
+        "markdown_heading_preserved",
     ],
 )
 def test_strip_comments(raw: str, expected: str) -> None:

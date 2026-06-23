@@ -35,12 +35,14 @@ class CLIGroup(click.Group):
 
 
 def strip_comments(text: str) -> str:
-    """Drop ``#`` comment lines from editor input and collapse blank-line runs.
+    """Drop HTML-comment hint lines from editor input and collapse blank-line runs.
 
-    Used to clean text returned from $EDITOR: removes full-line comments (the
-    template hints) and squeezes consecutive blank lines, leaving a trimmed body.
+    Used to clean text returned from $EDITOR: removes full-line ``<!-- ... -->``
+    hints and squeezes consecutive blank lines, leaving a trimmed body. ``#`` is
+    deliberately not the marker — it is a Markdown heading, and these bodies
+    render as Markdown on GitHub.
     """
-    lines = [line for line in text.splitlines() if not line.startswith("#")]
+    lines = [line for line in text.splitlines() if not line.startswith("<!--")]
     collapsed: list[str] = []
     prev_blank = False
     for line in lines:
@@ -56,7 +58,7 @@ def open_editor(hint: str) -> str:
     """Open $EDITOR with a hint header and return the entered body, comments stripped.
 
     Args:
-        hint: Shown as a leading ``# <hint>`` comment to orient the writer.
+        hint: Shown as a leading ``<!-- hint -->`` comment to orient the writer.
 
     Returns:
         The cleaned body text.
@@ -64,7 +66,7 @@ def open_editor(hint: str) -> str:
     Raises:
         click.Abort: If the body is empty after stripping comments.
     """
-    template = f"# {hint}\n# Lines starting with '#' are ignored.\n\n"
+    template = f"<!-- {hint} -->\n<!-- HTML comments are ignored. -->\n\n"
     edited_text = click.edit(template)
     body_text = strip_comments(edited_text or "")
     if not body_text:
