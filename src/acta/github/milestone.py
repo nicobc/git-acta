@@ -1,3 +1,10 @@
+"""Create, list, and view GitHub milestones.
+
+GitHub milestones have no native "scope" field, so acta encodes the branch scope
+as a leading ``scope: <scope>`` line in the milestone's description and parses it
+back out on read.
+"""
+
 import json
 from dataclasses import dataclass
 
@@ -8,6 +15,8 @@ _SCOPE_PREFIX = "scope: "
 
 @dataclass
 class MilestoneListItem:
+    """A milestone in a list view, with open/closed issue counts."""
+
     number: int
     title: str
     scope: str
@@ -18,6 +27,8 @@ class MilestoneListItem:
 
 @dataclass
 class MilestoneDetail:
+    """A single milestone's detail, including its open/closed state."""
+
     number: int
     title: str
     scope: str
@@ -31,6 +42,7 @@ def milestone_create(
     scope: str,
     description: str = "",
 ) -> int:
+    """Create a milestone, encoding ``scope`` into its description; return its number."""
     gh_description = _build_description(scope, description)
     response_json = gh(
         "api",
@@ -47,6 +59,7 @@ def milestone_create(
 
 
 def milestone_list() -> list[MilestoneListItem]:
+    """Return all open milestones, with scope parsed out of each description."""
     response_json = gh(
         "api", f"repos/{get_repo()}/milestones", "-X", "GET", "-f", "state=open", capture=True
     )
@@ -67,6 +80,7 @@ def milestone_list() -> list[MilestoneListItem]:
 
 
 def milestone_view(number: int) -> MilestoneDetail:
+    """Fetch one milestone's detail, with scope parsed out of its description."""
     response_json = gh("api", f"repos/{get_repo()}/milestones/{number}", capture=True)
     milestone_data = json.loads(response_json)
     scope, description = parse_description(str(milestone_data.get("description") or ""))
@@ -81,14 +95,17 @@ def milestone_view(number: int) -> MilestoneDetail:
 
 
 def milestone_reopen(number: int) -> None:
+    """Reopen a closed milestone."""
     gh("api", f"repos/{get_repo()}/milestones/{number}", "--method", "PATCH", "-f", "state=open")
 
 
 def milestone_close(number: int) -> None:
+    """Close a milestone (done automatically when its last issue ships)."""
     gh("api", f"repos/{get_repo()}/milestones/{number}", "--method", "PATCH", "-f", "state=closed")
 
 
 def _build_description(scope: str, description: str) -> str:
+    """Encode ``scope`` as a leading ``scope: …`` line above the free-text description."""
     description_parts = [f"scope: {scope}"]
     if description:
         description_parts.append(description)
@@ -96,7 +113,15 @@ def _build_description(scope: str, description: str) -> str:
 
 
 def parse_description(raw_description: str) -> tuple[str, str]:
-    """Returns (scope, description) from a GitHub milestone description."""
+    """Split a milestone description into its ``(scope, description)`` parts.
+
+    Inverse of ``_build_description``: reads the scope from a leading ``scope: …``
+    line if present, returning an empty scope otherwise.
+
+    Example:
+        >>> parse_description("scope: auth\\n\\nHandles login.")
+        ('auth', 'Handles login.')
+    """
     lines = raw_description.split("\n")
     scope = ""
     if lines and lines[0].startswith(_SCOPE_PREFIX):

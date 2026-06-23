@@ -1,3 +1,5 @@
+"""Open, inspect, watch, and merge pull requests, and reduce their CI check state."""
+
 import json
 import time
 from enum import Enum
@@ -14,6 +16,8 @@ _PENDING_STATUS_STATES = {"PENDING", "EXPECTED"}
 
 
 class ChecksState(Enum):
+    """Aggregate CI state of a PR: no checks, still running, all green, or failed."""
+
     NONE = "none"
     PENDING = "pending"
     PASSED = "passed"
@@ -46,6 +50,13 @@ def classify_rollup(nodes: list[dict[str, object]]) -> ChecksState:
 
 
 def fetch_checks_state(pr_number: int) -> ChecksState:
+    """Ask GitHub for the PR's CI results and reduce them to one overall state.
+
+    GitHub reports every CI check on the PR's latest commit — each GitHub Actions
+    job plus any older-style status checks — as a list it calls the
+    "statusCheckRollup". This fetches that list and collapses it (via
+    ``classify_rollup``) into a single NONE/PENDING/PASSED/FAILED verdict.
+    """
     response_json = gh(
         "pr",
         "view",
@@ -61,6 +72,7 @@ def fetch_checks_state(pr_number: int) -> ChecksState:
 
 
 def pr_create(title: str, body: str, base: str = "main") -> tuple[int, str]:
+    """Open a PR for the current branch against ``base``; return its ``(number, url)``."""
     command_args = [
         "pr",
         "create",
@@ -79,6 +91,7 @@ def pr_create(title: str, body: str, base: str = "main") -> tuple[int, str]:
 
 
 def pr_view() -> tuple[int, str]:
+    """Return the ``(number, title)`` of the PR for the current branch."""
     response_json = gh(
         "pr",
         "view",
@@ -94,14 +107,22 @@ def pr_view() -> tuple[int, str]:
 
 
 def pr_checks_pass(pr_number: int) -> bool:
+    """Return True if the PR's checks are green or there are none (nothing gating)."""
     return fetch_checks_state(pr_number) in {ChecksState.PASSED, ChecksState.NONE}
 
 
 def pr_merge(pr_number: int) -> None:
+    """Squash-merge the PR and delete its remote branch."""
     gh("pr", "merge", str(pr_number), "--squash", "--delete-branch", "--repo", get_repo())
 
 
 def pr_checks_watch(pr_number: int) -> None:
+    """Wait for checks to appear, then stream them live until they finish.
+
+    Polls for up to ``_CHECKS_QUEUE_TIMEOUT`` seconds for CI to register; if none
+    ever appears it returns quietly (nothing to watch), otherwise it hands off to
+    ``gh pr checks --watch`` which blocks until the checks complete.
+    """
     for _ in range(_CHECKS_QUEUE_TIMEOUT // _CHECKS_POLL_INTERVAL):
         if fetch_checks_state(pr_number) is not ChecksState.NONE:
             break

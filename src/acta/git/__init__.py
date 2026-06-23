@@ -1,3 +1,5 @@
+"""Thin wrappers around the git command-line tool."""
+
 import subprocess
 
 
@@ -24,4 +26,5 @@ def git(*args: str, capture: bool = False, quiet: bool = False) -> str:
 
 
 def get_remote_url(remote_name: str) -> str:
+    """Return the configured URL of the named remote (e.g. ``origin``)."""
     return git("remote", "get-url", remote_name, capture=True)

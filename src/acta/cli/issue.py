@@ -1,3 +1,5 @@
+"""``acta issue`` — create, list, start, and discard GitHub issues."""
+
 import re
 
 import click
@@ -47,7 +49,7 @@ def format_issue_lines(
 
 @click.group(cls=CLIGroup)
 def issue() -> None:
-    """Manage issues."""
+    """Create, list, start, and discard issues on the GitHub board."""
 
 
 @issue.command(name="new")
@@ -70,7 +72,11 @@ def new_issue(
     body: str | None,
     edit_body: bool,
 ) -> None:
-    """Create a new issue."""
+    """Create a GitHub issue with a type label and optional milestone.
+
+    The --type becomes a `type: ...` label; when you later run `acta issue start`,
+    that label sets the new branch's conventional-commit type.
+    """
     if body and edit_body:
         raise click.UsageError("--body and --edit are mutually exclusive")
     if edit_body:
@@ -89,7 +95,10 @@ def new_issue(
     help="Filter by milestone number.",
 )
 def list_issues(milestone_number: int | None) -> None:
-    """List open issues."""
+    """List open issues, grouped by milestone.
+
+    With --milestone, lists only that milestone's issues as a flat list.
+    """
     issues = issue_list(milestone_number)
     if not issues:
         click.echo("No open issues.")

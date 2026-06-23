@@ -1,3 +1,5 @@
+"""The ``acta`` command group and subcommand registration."""
+
 import click
 
 from acta.cli.board import board

@@ -1,3 +1,5 @@
+"""``acta pr``, ``ship``, and ``watch`` — the pull-request lifecycle."""
+
 import click
 
 from acta.cli.shared import TYPE_CHOICE, open_editor, strip_type_prefix
