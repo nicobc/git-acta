@@ -5,7 +5,7 @@ import re
 import click
 
 from acta.cli.shared import TYPE_CHOICE, CLIGroup, open_editor
-from acta.git.branch import fetch_origin, switch_new_branch
+from acta.git.branch import branch_exists, fetch_origin, switch_branch, switch_new_branch
 from acta.git.config import set_active_issue
 from acta.github.issue import (
     IssueInfo,
@@ -135,7 +135,11 @@ def list_issues(milestone_number: int | None) -> None:
 @issue.command(name="start")
 @click.argument("number", type=int)
 def start_issue(number: int) -> None:
-    """Start work on an issue: create branch and record the active issue."""
+    """Start work on an issue: switch to its branch and record the active issue.
+
+    Idempotent: if the issue's branch already exists, it switches to it (resume)
+    rather than erroring, so re-running ``start`` on an in-progress issue is safe.
+    """
     issue_info = issue_view(number)
     issue_type = issue_info.type
     milestone_ref = issue_info.milestone
@@ -154,9 +158,14 @@ def start_issue(number: int) -> None:
     topic = f"{number}-{slug}" if slug else str(number)
     branch_name = f"{issue_type}/{scope}/{topic}"
     fetch_origin()
-    switch_new_branch(branch_name)
+    resumed = branch_exists(branch_name)
+    if resumed:
+        switch_branch(branch_name)
+    else:
+        switch_new_branch(branch_name)
     set_active_issue(number)
-    click.echo(f"On branch {branch_name}, active issue is #{number}.")
+    status_words = "Back on" if resumed else "On"
+    click.echo(f"{status_words} branch {branch_name}, active issue is #{number}.")
     issue_body = issue_info.body.strip()
     if issue_body:
         click.echo()
