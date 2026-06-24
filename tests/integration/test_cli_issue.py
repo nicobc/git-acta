@@ -5,7 +5,7 @@ from click.testing import CliRunner
 from pytest_subprocess import FakeProcess
 
 from acta.cli import main
-from acta.git.branch import TYPES, get_current_branch
+from acta.git.branch import TYPES, get_current_branch, switch_main, switch_new_branch
 from acta.git.config import get_active_issue
 from acta.github.label import TYPE_COLORS
 
@@ -237,6 +237,20 @@ class TestIssueStart:
         assert result.exit_code == 0, result.output
         assert result.output == (
             "On branch feat/auth/1-add-login, active issue is #1.\n"
+            "\n"
+            "## Description\nLogin form with magic link.\n"
+        )
+        assert get_current_branch() == "feat/auth/1-add-login"
+        assert get_active_issue() == 1
+
+    @pytest.mark.usefixtures("git_repo_with_github_remote")
+    def test_resumes_existing_branch(self, runner: CliRunner) -> None:
+        switch_new_branch("feat/auth/1-add-login")
+        switch_main()
+        result = runner.invoke(main, ["issue", "start", "1"])
+        assert result.exit_code == 0, result.output
+        assert result.output == (
+            "Back on branch feat/auth/1-add-login, active issue is #1.\n"
             "\n"
             "## Description\nLogin form with magic link.\n"
         )
