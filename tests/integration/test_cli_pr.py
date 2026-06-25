@@ -322,13 +322,11 @@ class TestWatch:
         assert result.output == "Now watching checks...\n✓ test\nAll checks passed.\n"
 
     @pytest.mark.usefixtures("_short_queue")
-    def test_returns_without_watching_when_no_checks_appear(
-        self, runner: CliRunner, fp: FakeProcess
-    ) -> None:
+    def test_reports_when_no_checks_appear(self, runner: CliRunner, fp: FakeProcess) -> None:
         fp.register(ROLLUP_CMD, stdout=ROLLUP_NONE)  # pyright: ignore[reportUnknownMemberType]
         result = runner.invoke(main, ["watch"])
         assert result.exit_code == 0, result.output
-        assert result.output == ""
+        assert result.output == "No checks to watch.\n"
 
     def test_surfaces_failure_log_and_exits_nonzero(
         self, runner: CliRunner, fp: FakeProcess
