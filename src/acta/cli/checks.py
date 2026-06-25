@@ -50,9 +50,10 @@ def watch_checks(pr_number: int) -> None:
 
     Echoes one line per check only as it reaches a terminal state. On failure it
     prints the failing job's log tail and raises ``ClickException`` so the
-    command exits non-zero. Returns quietly if no checks ever appear.
+    command exits non-zero. Reports "No checks to watch." if none ever appear.
     """
     if not await_checks(pr_number):
+        _echo_and_flush("No checks to watch.")
         return
     _echo_and_flush("Now watching checks...")
     reported: set[str] = set()
